@@ -1,0 +1,10 @@
+[package]
+name = "diagnostic"
+version = "0.0.0"
+authors = ["Matthias Fauconneau <matthias.fauconneau@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+framework = { path = "framework" }
+serde = { version = "", features = ['derive'] }
+serde_json = ""
