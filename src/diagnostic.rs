@@ -1,5 +1,4 @@
-use serde::Deserialize;
-use std::path::PathBuf;
+use {std::path::PathBuf, serde::Deserialize};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Code {
@@ -106,9 +105,6 @@ pub enum Message {
     CompilerMessage(CompilerMessage),
     BuildScriptExecuted(BuildScript),
 }
-
-impl std::fmt::Display for Diagnostic { fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str(&self.rendered.as_ref().ok_or(std::fmt::Error)?) } }
-impl std::fmt::Display for CompilerMessage { fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { write!(f, "{}", self.message) } }
 
 pub fn parse<R:std::io::Read>(input: R) -> serde_json::StreamDeserializer<'static, serde_json::de::IoRead<R>, Message> {
     serde_json::Deserializer::from_reader(input).into_iter::<Message>()
