@@ -104,6 +104,7 @@ pub enum Message {
     CompilerArtifact(Artifact),
     CompilerMessage(CompilerMessage),
     BuildScriptExecuted(BuildScript),
+    BuildFinished,
 }
 
 pub fn parse<R:std::io::Read>(input: R) -> serde_json::StreamDeserializer<'static, serde_json::de::IoRead<R>, Message> {
