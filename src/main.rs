@@ -1,5 +1,5 @@
 mod diagnostic; use diagnostic::{parse, *};
-use {std::{process::{Command, Stdio, ExitStatus}}, framework::{core::Ok, process::Status}};
+use {std::{process::{Command, Stdio, ExitStatus}}, framework::{error::Ok, process::Status}};
 
 // Maps cargo errors/warning to file:line
 fn main() -> Status {
