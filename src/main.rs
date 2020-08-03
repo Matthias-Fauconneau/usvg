@@ -1,23 +1,21 @@
-mod diagnostic;
-
-// Maps cargo errors/warning to file:line
-use std::process::{Command, Stdio};
-fn main() -> Result<(),std::io::Error> {
-	let mut child = Command::new("cargo").args(std::env::args().skip(1))
-																	.arg("--message-format=json-diagnostic-rendered-ansi")
-                                                                    .stdout(Stdio::piped()).spawn()?;
-	use diagnostic::{parse, Message, CompilerMessage, Diagnostic};
-    for msg in parse(std::io::BufReader::new(child.stdout.take().unwrap())) { match msg? {
-        Message::CompilerMessage(CompilerMessage{message: Diagnostic{message, spans, rendered: Some(rendered), ..}, ..}) => {
-            let _ = child.kill(); // Kill on first warning/error to save power/heat
-            if message == "aborting due to previous error" { continue; }
-            eprint!("{}", rendered);
-            for span in spans {
-                if std::path::Path::new(&span.file_name).exists() { println!("{}:{}:{}", span.file_name, span.line_start, span.column_start); }
-            }
-			std::process::exit(-1);
-        },
-        _=>{},
-    }}
-    std::process::exit(child.wait()?.code().unwrap_or(-1));
+use {core::{throws,Error}, ::xy::xy};
+struct Pages(Vec<usvg::Tree>);
+impl ui::widget::Widget for Pages {
+	#[throws] fn paint(&mut self, target: &mut ui::widget::Target) {
+		println!("{}", self.0.len());
+		for (i, page) in self.0.iter().enumerate() {
+			let page = resvg::render(page, usvg::FitTo::Width(target.size.x/2), None).unwrap();
+			#[allow(non_camel_case_types)] #[derive(Clone, Copy, Debug)] pub struct rgba8 { pub r : u8, pub g : u8, pub b : u8, pub a: u8  }
+			impl std::convert::From<&rgba8> for ui::bgra8 { fn from(&rgba8{r,g,b,a}: &rgba8) -> Self { Self{b,g,r,a} } }
+			let page = ui::Image{stride:page.width(), size:xy{x:page.width(),y:page.height()}, data: unsafe{core::slice::cast::<rgba8>(page.data())}};
+			let page = page.slice(xy{x:0,y:(page.size.y-target.size.y)/2},xy{x:target.size.x/2,y:target.size.y});
+			let mut target = target.slice_mut(xy{x:i as u32*target.size.x/2,y:0},xy{x:target.size.x/2,y:target.size.y});
+			target.set_map(&page, |_,p| p.into());
+		}
+	}
+}
+#[throws] fn main() {
+	let pages = std::fs::read_dir("data")?.map(|e| e.unwrap().path()).filter(|p| p.extension().filter(|&e| e == "svg").is_some());
+	let pages = pages.map(|path| usvg::Tree::from_file(path, &Default::default()).unwrap()).collect();
+	ui::app::run(Pages(pages))?
 }
