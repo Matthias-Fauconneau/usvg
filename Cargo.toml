@@ -10,4 +10,5 @@ core = { version = '', path='../core'}
 usvg = ''
 resvg = ''
 xy = { version = '', path='../xy'}
+image = { version = '', path='../image' }
 ui = { version = '', path='../ui', features=['app']}
