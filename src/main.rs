@@ -21,7 +21,7 @@ impl ui::widget::Widget for PagesView {
 	}
 }
 #[throws] fn main() {
-	let pages = {let mut v=std::fs::read_dir("data")?.map(|e| e.unwrap().path()).filter(|p| p.extension().filter(|&e| e == "svg").is_some()).collect::<Vec<_>>(); v.sort(); v.into_iter()};
+	let pages = {let mut v=std::fs::read_dir(".")?.map(|e| e.unwrap().path()).filter(|p| p.extension().filter(|&e| e == "svg").is_some()).collect::<Vec<_>>(); v.sort(); v.into_iter()};
 	let pages = pages.map(|path| usvg::Tree::from_file(path, &Default::default()).unwrap()).collect();
 	ui::app::run(PagesView{pages, skip:0})?
 }
