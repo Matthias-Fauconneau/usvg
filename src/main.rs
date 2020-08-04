@@ -1,23 +1,27 @@
 use {core::{throws,Error}, ::xy::xy};
-struct Pages(Vec<usvg::Tree>);
-impl ui::widget::Widget for Pages {
+struct PagesView{pages:Vec<usvg::Tree>, skip: usize}
+impl ui::widget::Widget for PagesView {
 	#[throws] fn paint(&mut self, target: &mut ui::widget::Target) {
-		println!("pages.len(): {}", self.0.len());
-		for (i, page) in self.0.iter().enumerate().take(2) {
-			let page = resvg::render(page, usvg::FitTo::Width(target.size.x/2), Some(usvg::Color::white())).unwrap();
+		let mut x = 0;
+		for page in self.pages.iter().skip(self.skip) {
+			let page = resvg::render(page, usvg::FitTo::Height(target.size.y), Some(usvg::Color::white())).unwrap();
 			#[allow(non_camel_case_types)] #[derive(Clone, Copy, Debug)] pub struct rgba8 { pub r : u8, pub g : u8, pub b : u8, pub a: u8  }
-			use image::bgra8;
-			impl std::convert::From<&rgba8> for bgra8 { fn from(&rgba8{r,g,b,a}: &rgba8) -> Self { Self{b,g,r,a} } }
+			impl std::convert::From<&rgba8> for image::bgra8 { fn from(&rgba8{r,g,b,a}: &rgba8) -> Self { Self{b,g,r,a} } }
 			let page = image::Image{stride:page.width(), size:xy{x:page.width(),y:page.height()}, data: unsafe{core::slice::cast::<rgba8>(page.data())}};
-			println!("{:?} {:?}",target.size, page.size);
-			let page = page.slice(xy{x:0,y:(page.size.y-target.size.y)/2},xy{x:target.size.x/2,y:target.size.y});
-			let mut target = target.slice_mut(xy{x:i as u32*target.size.x/2,y:0},xy{x:target.size.x/2,y:target.size.y});
-			target.set_map(&page, |_,p| bgra8{a:0xFF, ..p.into()});
+			if x+page.size.x > target.size.x { break; }
+			target.slice_mut(xy{x,y:0},page.size).set_map(&page, |_,p| p.into());
+			x += page.size.x;
 		}
+	}
+	fn event(&mut self, &ui::widget::Event{key, ..}: &ui::widget::Event) -> bool {
+		if key == '⎋' { false }
+		else if ['←','⌫'].contains(&key) && self.skip >= 2 { self.skip -= 2; true }
+		else if self.skip + 2 < self.pages.len() { self.skip += 2; true }
+		else { false }
 	}
 }
 #[throws] fn main() {
-	let pages = std::fs::read_dir("data")?.map(|e| e.unwrap().path()).filter(|p| p.extension().filter(|&e| e == "svg").is_some());
+	let pages = {let mut v=std::fs::read_dir("data")?.map(|e| e.unwrap().path()).filter(|p| p.extension().filter(|&e| e == "svg").is_some()).collect::<Vec<_>>(); v.sort(); v.into_iter()};
 	let pages = pages.map(|path| usvg::Tree::from_file(path, &Default::default()).unwrap()).collect();
-	ui::app::run(Pages(pages))?
+	ui::app::run(PagesView{pages, skip:0})?
 }
